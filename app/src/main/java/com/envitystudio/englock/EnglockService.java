@@ -7,7 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.PixelFormat;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.view.Gravity;
 import android.view.WindowManager;
 
@@ -26,6 +28,8 @@ public class EnglockService extends Service {
     private ScreenStateReceiver screenStateReceiver;
     private WindowManager windowManager;
     private LockScreenView lockScreenView;
+    // truyền và nhận tin nhắn
+    private Handler handler;
 
     @Override
     public void onCreate() {
@@ -33,6 +37,15 @@ public class EnglockService extends Service {
         // phuong thuc dau tien duoc chay khi
         registerScreenStateReceiver();
         DisableKeyguard();
+        handler = new Handler(){
+            @Override
+            public void handleMessage(Message msg) {
+                if(msg.what==1000)
+                {
+                    HideLockScreen();
+                }
+            }
+        };
     }
 
     @Override
@@ -55,42 +68,47 @@ public class EnglockService extends Service {
         EnableKeyguard();
         super.onDestroy();
     }
-    private void showLockScreenView()
-    {
+
+    private void showLockScreenView() {
         // Tao ra doi tuong
-        lockScreenView = new LockScreenView(this);
-        windowManager=(WindowManager) getSystemService(WINDOW_SERVICE);
+        lockScreenView = new LockScreenView(this,handler);
+        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         // hien thi
         WindowManager.LayoutParams params = new WindowManager.LayoutParams();
-        params.width =WindowManager.LayoutParams.MATCH_PARENT;
+        params.width = WindowManager.LayoutParams.MATCH_PARENT;
         params.height = WindowManager.LayoutParams.MATCH_PARENT;
         params.gravity = Gravity.CENTER;
         params.type = WindowManager.LayoutParams.TYPE_PHONE;
         params.format = PixelFormat.TRANSPARENT;
-        windowManager.addView(lockScreenView,params);
+        windowManager.addView(lockScreenView, params);
     }
-    private void DisableKeyguard()
-    {
 
-            // Huy bao ve man hinh thi chung ta moi co the hien thi duoc customView
-            KeyguardManager manager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-            KeyguardManager.KeyguardLock lock = manager.newKeyguardLock("IN");
+    // Mo khoa
+    private void HideLockScreen() {
+        windowManager.removeView(lockScreenView);
+    }
+
+    private void DisableKeyguard() {
+
+        // Huy bao ve man hinh thi chung ta moi co the hien thi duoc customView
+        KeyguardManager manager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+        KeyguardManager.KeyguardLock lock = manager.newKeyguardLock("IN");
         // Tắt màn hình khóa
-            lock.disableKeyguard();
+        lock.disableKeyguard();
 
     }
+
     // Kich hoat lai bao ve man hinh
-    private void EnableKeyguard()
-    {
+    private void EnableKeyguard() {
         // Huy bao ve man hinh thi chung ta moi co the hien thi duoc customView
         KeyguardManager manager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
         KeyguardManager.KeyguardLock lock = manager.newKeyguardLock("IN");
         lock.reenableKeyguard();
     }
+
     // ĐỐi tượng BroadcastReceiver được dùng để lắng nghe các sự kiện được phát bởi hệ thống
     // Cụ thẻ lắng nghe sự kiện SCREEN_OFF
-    private class ScreenStateReceiver extends BroadcastReceiver
-    {
+    private class ScreenStateReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -100,27 +118,25 @@ public class EnglockService extends Service {
             showLockScreenView();
 
 
-
-
         }
     }
+
     // dung de dang ky su dung
-    private void registerScreenStateReceiver ()
-    {
+    private void registerScreenStateReceiver() {
         // TODO
         // khoi tao doi tuong
-        screenStateReceiver=new ScreenStateReceiver();
+        screenStateReceiver = new ScreenStateReceiver();
         // Tao bo loc
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
         // dang ky
-        registerReceiver(screenStateReceiver,intentFilter);
+        registerReceiver(screenStateReceiver, intentFilter);
 
 
     }
+
     // dung de huy dang ky
-    private void unregisterScreenStateReceiver()
-    {
+    private void unregisterScreenStateReceiver() {
         unregisterReceiver(screenStateReceiver);
         //TODO
     }
